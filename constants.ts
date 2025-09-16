@@ -26,7 +26,11 @@ export const UI_TEXTS: Record<Language, Record<string, string>> = {
         resultsTableValue: 'Value',
         resultsTableRef: 'Reference Range',
         resultsTableInterp: 'Interpretation',
-        advancedAnalysisTitle: "Advanced Analysis"
+        advancedAnalysisTitle: "Advanced Analysis",
+        page: "Page",
+        of: "of",
+        previous: "Previous",
+        next: "Next",
     },
     ar: {
         appName: 'محلل التقارير الطبية بالذكاء الاصطناعي',
@@ -53,7 +57,11 @@ export const UI_TEXTS: Record<Language, Record<string, string>> = {
         resultsTableValue: 'القيمة',
         resultsTableRef: 'النطاق المرجعي',
         resultsTableInterp: 'التفسير',
-        advancedAnalysisTitle: "تحليل متقدم"
+        advancedAnalysisTitle: "تحليل متقدم",
+        page: "صفحة",
+        of: "من",
+        previous: "السابق",
+        next: "التالي",
     }
 };
 
@@ -61,18 +69,15 @@ export const getGeminiPrompt = (): string => {
     return `
     You are an expert AI in medical report analysis, acting as a highly knowledgeable physician and medical researcher. Your task is to analyze the provided medical lab report image with academic rigor, adhering to global medical standards like WHO and NIH.
 
-    Analyze the lab results (e.g., CBC, liver/kidney functions, blood sugar).
-    1.  Compare results to standard reference ranges.
-    2.  Detect and highlight any deviations or critical values.
-    3.  Provide clear, structured outputs in JSON format ONLY. Do not add any text before or after the JSON object.
+    Structure your output into a multi-page report. The final JSON object must have a top-level key "pages", which is an array of page objects. Each page object should represent a logical section of the report. For example, Page 1 could be the patient summary, Page 2 the detailed lab results, and Page 3 the recommendations.
+
+    Each page object in the "pages" array must contain a "pageTitle" and can optionally contain "patientSummary", "physicianReport", or "recommendations" sections.
 
     For every text field that requires translation (like titles, summaries, recommendations, test names, interpretations), you MUST provide both an English ('en') and an Arabic ('ar') translation within a nested object.
     Example: "title": {"en": "Patient Summary", "ar": "ملخص المريض"}.
     Numeric values and reference ranges should remain as simple strings.
 
-    The final JSON object must strictly follow the schema provided.
+    The final JSON object must strictly follow the schema provided. Do not add any text before or after the JSON object.
     - For the 'physicianReport.resultsTable', accurately extract the test name, its value, the reference range, and a concise interpretation (e.g., 'Normal', 'High', 'Low', 'Critical').
-    - For 'patientSummary', use simple, clear language.
-    - For 'recommendations', provide actionable advice.
 `;
 };

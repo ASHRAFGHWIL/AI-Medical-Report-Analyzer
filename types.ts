@@ -7,6 +7,11 @@ export type BilingualText = {
     ar: string;
 };
 
+export interface PatientSummary {
+    title: BilingualText;
+    summary: BilingualText;
+}
+
 export interface PhysicianReport {
     title: BilingualText;
     introduction: BilingualText;
@@ -34,11 +39,13 @@ export interface Recommendations {
     };
 }
 
+export interface ReportPage {
+    pageTitle: BilingualText;
+    patientSummary?: PatientSummary;
+    physicianReport?: PhysicianReport;
+    recommendations?: Recommendations;
+}
+
 export interface AnalysisResult {
-    patientSummary: {
-        title: BilingualText;
-        summary: BilingualText;
-    };
-    physicianReport: PhysicianReport;
-    recommendations: Recommendations;
+    pages: ReportPage[];
 }

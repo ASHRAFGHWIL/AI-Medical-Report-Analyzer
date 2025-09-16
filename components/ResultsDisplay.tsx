@@ -1,5 +1,5 @@
-import React from 'react';
-import type { AnalysisResult, Language } from '../types';
+import React, { useState } from 'react';
+import type { AnalysisResult, Language, ReportPage } from '../types';
 import { UI_TEXTS } from '../constants';
 import { Stethoscope, User, HeartPulse, Utensils, Dumbbell } from './Icons';
 
@@ -9,9 +9,45 @@ interface ResultsDisplayProps {
 }
 
 const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, language }) => {
+    const [currentPage, setCurrentPage] = useState(0);
     const texts = UI_TEXTS[language];
-    const { patientSummary, physicianReport, recommendations } = result;
+    const totalPages = result.pages.length;
 
+    const goToPage = (pageIndex: number) => {
+        if (pageIndex >= 0 && pageIndex < totalPages) {
+            setCurrentPage(pageIndex);
+        }
+    };
+    
+    return (
+        <div className="space-y-8">
+            {result.pages.map((page, index) => (
+                 <div key={index} className={`report-page ${index !== currentPage ? 'hidden' : ''}`}>
+                    <PageContent page={page} language={language} texts={texts} />
+                 </div>
+            ))}
+
+            {totalPages > 1 && (
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={goToPage}
+                    language={language}
+                />
+            )}
+        </div>
+    );
+};
+
+interface PageContentProps {
+    page: ReportPage;
+    language: Language;
+    texts: Record<string, string>;
+}
+
+const PageContent: React.FC<PageContentProps> = ({ page, language, texts }) => {
+    const { patientSummary, physicianReport, recommendations } = page;
+    
     const getInterpretationRowClass = (interpretation: string) => {
         const lowerInterp = interpretation.toLowerCase();
         if (lowerInterp.includes('high') || lowerInterp.includes('critical')) {
@@ -40,7 +76,6 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, language }) => 
         return 'text-gray-700 dark:text-gray-300';
     };
 
-
     const Card: React.FC<{ title: string; icon: React.ReactNode; children: React.ReactNode }> = ({ title, icon, children }) => (
         <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-6 mb-6 print:bg-white print:border print:border-gray-200">
             <div className="flex items-center mb-4">
@@ -56,52 +91,58 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, language }) => 
     );
 
     return (
-        <div className="space-y-8">
-            <Card title={patientSummary.title[language]} icon={<User className="h-6 w-6 text-primary-600 dark:text-primary-300" />}>
-                <p>{patientSummary.summary[language]}</p>
-            </Card>
+        <>
+            {patientSummary && (
+                <Card title={patientSummary.title[language]} icon={<User className="h-6 w-6 text-primary-600 dark:text-primary-300" />}>
+                    <p>{patientSummary.summary[language]}</p>
+                </Card>
+            )}
 
-            <Card title={physicianReport.title[language]} icon={<Stethoscope className="h-6 w-6 text-primary-600 dark:text-primary-300" />}>
-                <p>{physicianReport.introduction[language]}</p>
-                <div className="overflow-x-auto mt-4">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-separate border-spacing-0">
-                        <thead className="bg-gray-100 dark:bg-gray-700">
-                            <tr>
-                                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">{texts.resultsTableTest}</th>
-                                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">{texts.resultsTableValue}</th>
-                                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">{texts.resultsTableRef}</th>
-                                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">{texts.resultsTableInterp}</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white dark:bg-gray-800">
-                            {physicianReport.resultsTable.map((row, index) => (
-                                <tr key={index} className={getInterpretationRowClass(row.interpretation.en)}>
-                                    <td className="px-4 py-3 font-medium whitespace-nowrap">{row.test[language]}</td>
-                                    <td className="px-4 py-3 whitespace-nowrap">{row.value}</td>
-                                    <td className="px-4 py-3 whitespace-nowrap">{row.referenceRange}</td>
-                                    <td className="px-4 py-3 whitespace-nowrap">
-                                        <span className={getInterpretationTextClass(row.interpretation.en)}>
-                                            {row.interpretation[language]}
-                                        </span>
-                                    </td>
+            {physicianReport && (
+                <Card title={physicianReport.title[language]} icon={<Stethoscope className="h-6 w-6 text-primary-600 dark:text-primary-300" />}>
+                    <p>{physicianReport.introduction[language]}</p>
+                    <div className="overflow-x-auto mt-4">
+                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-separate border-spacing-0">
+                            <thead className="bg-gray-100 dark:bg-gray-700">
+                                <tr>
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">{texts.resultsTableTest}</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">{texts.resultsTableValue}</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">{texts.resultsTableRef}</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">{texts.resultsTableInterp}</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-                 <h4 className="font-bold mt-6 mb-2">{texts.advancedAnalysisTitle}</h4>
-                <p>{physicianReport.advancedAnalysis[language]}</p>
-            </Card>
+                            </thead>
+                            <tbody className="bg-white dark:bg-gray-800">
+                                {physicianReport.resultsTable.map((row, index) => (
+                                    <tr key={index} className={getInterpretationRowClass(row.interpretation.en)}>
+                                        <td className="px-4 py-3 font-medium whitespace-nowrap">{row.test[language]}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap">{row.value}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap">{row.referenceRange}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap">
+                                            <span className={getInterpretationTextClass(row.interpretation.en)}>
+                                                {row.interpretation[language]}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <h4 className="font-bold mt-6 mb-2">{texts.advancedAnalysisTitle}</h4>
+                    <p>{physicianReport.advancedAnalysis[language]}</p>
+                </Card>
+            )}
 
-            <div>
-                 <h2 className="text-2xl font-bold text-primary-800 dark:text-primary-200 mb-4 print:text-xl">{texts.recommendationsTitle}</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                     <RecommendationCard title={recommendations.general.title[language]} icon={<HeartPulse className="w-5 h-5 text-green-600"/>} points={recommendations.general.points} language={language} />
-                     <RecommendationCard title={recommendations.nutritional.title[language]} icon={<Utensils className="w-5 h-5 text-orange-600"/>} points={recommendations.nutritional.points} language={language} />
-                     <RecommendationCard title={recommendations.physicalTherapy.title[language]} icon={<Dumbbell className="w-5 h-5 text-blue-600"/>} points={recommendations.physicalTherapy.points} language={language} />
+            {recommendations && (
+                <div>
+                    <h2 className="text-2xl font-bold text-primary-800 dark:text-primary-200 mb-4 print:text-xl">{texts.recommendationsTitle}</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <RecommendationCard title={recommendations.general.title[language]} icon={<HeartPulse className="w-5 h-5 text-green-600"/>} points={recommendations.general.points} language={language} />
+                        <RecommendationCard title={recommendations.nutritional.title[language]} icon={<Utensils className="w-5 h-5 text-orange-600"/>} points={recommendations.nutritional.points} language={language} />
+                        <RecommendationCard title={recommendations.physicalTherapy.title[language]} icon={<Dumbbell className="w-5 h-5 text-blue-600"/>} points={recommendations.physicalTherapy.points} language={language} />
+                    </div>
                 </div>
-            </div>
-        </div>
+            )}
+        </>
     );
 };
 
@@ -125,5 +166,30 @@ const RecommendationCard: React.FC<RecommendationCardProps> = ({title, icon, poi
     </div>
 );
 
+interface PaginationProps {
+    currentPage: number;
+    totalPages: number;
+    onPageChange: (page: number) => void;
+    language: Language;
+}
+
+const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages, onPageChange, language }) => {
+    const texts = UI_TEXTS[language];
+    const buttonClass = "px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600";
+    
+    return (
+        <div className="pagination-controls flex items-center justify-center space-x-4 mt-8 py-4">
+            <button onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 0} className={buttonClass}>
+                {texts.previous}
+            </button>
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+                {texts.page} {currentPage + 1} {texts.of} {totalPages}
+            </span>
+            <button onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages - 1} className={buttonClass}>
+                {texts.next}
+            </button>
+        </div>
+    );
+};
 
 export default ResultsDisplay;

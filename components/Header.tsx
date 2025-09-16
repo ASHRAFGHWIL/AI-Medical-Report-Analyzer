@@ -22,8 +22,6 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
     const [isPdfExportReady, setIsPdfExportReady] = useState(false);
 
-    // This effect checks for the global PDF libraries loaded via script tags in index.html.
-    // It polls because script loading is asynchronous and may not be ready on initial component mount.
     useEffect(() => {
         const checkLibraries = () => {
             if ((window as any).html2canvas && (window as any).jspdf) {
@@ -43,38 +41,72 @@ const Header: React.FC<HeaderProps> = ({
             }
         }, 500);
 
-        return () => clearInterval(intervalId); // Cleanup on unmount
+        return () => clearInterval(intervalId);
     }, []);
 
     const handlePrint = () => {
         window.print();
     };
 
-    const handleExportPdf = () => {
+    const handleExportPdf = async () => {
         const input = resultsRef.current;
         const html2canvas = (window as any).html2canvas;
         const jspdf = (window as any).jspdf;
 
         if (input && html2canvas && jspdf) {
-            // Temporarily increase resolution for better quality
-            const scale = 2;
-            html2canvas(input, {
-                scale: scale,
-                useCORS: true,
-                backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
-            }).then((canvas: HTMLCanvasElement) => {
+            // Add a class to make all pages visible for capture
+            input.classList.add('pdf-export-mode');
+            
+            try {
+                const canvas = await html2canvas(input, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+                });
+
                 const imgData = canvas.toDataURL('image/png');
                 const { jsPDF } = jspdf;
                 const pdf = new jsPDF({
                     orientation: 'p',
                     unit: 'px',
-                    format: [canvas.width / scale, canvas.height / scale],
+                    format: 'a4', // Standard format
                 });
-                pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / scale, canvas.height / scale);
+
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = pdf.internal.pageSize.getHeight();
+                const canvasWidth = canvas.width / 2;
+                const canvasHeight = canvas.height / 2;
+                const canvasAspectRatio = canvasWidth / canvasHeight;
+                const pdfAspectRatio = pdfWidth / pdfHeight;
+
+                let finalWidth, finalHeight;
+                if (canvasAspectRatio > pdfAspectRatio) {
+                    finalWidth = pdfWidth;
+                    finalHeight = pdfWidth / canvasAspectRatio;
+                } else {
+                    finalHeight = pdfHeight;
+                    finalWidth = pdfHeight * canvasAspectRatio;
+                }
+                
+                const totalPDFPages = Math.ceil(canvasHeight / (canvasWidth * pdfHeight / pdfWidth));
+                let position = 0;
+
+                for (let i = 0; i < totalPDFPages; i++) {
+                    if (i > 0) pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, -position, pdfWidth, canvasHeight * pdfWidth / canvasWidth);
+                    position += pdfHeight * canvasWidth / pdfWidth * 2;
+                }
+                
                 pdf.save('medical_report_analysis.pdf');
-            });
+
+            } catch (error) {
+                console.error('Error exporting PDF:', error);
+                alert('An error occurred while exporting the PDF.');
+            } finally {
+                // Clean up by removing the class
+                input.classList.remove('pdf-export-mode');
+            }
         } else {
-            // This alert should ideally not be reached because of the disabled button state.
             console.error('PDF export libraries (jspdf, html2canvas) not loaded.');
             alert('Could not export to PDF. Please check your internet connection and try again.');
         }

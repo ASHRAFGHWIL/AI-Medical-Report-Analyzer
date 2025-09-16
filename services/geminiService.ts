@@ -13,72 +13,91 @@ const bilingualTextSchema = {
     required: ['en', 'ar'],
 };
 
+const patientSummarySchema = {
+    type: Type.OBJECT,
+    properties: {
+        title: bilingualTextSchema,
+        summary: bilingualTextSchema,
+    },
+    required: ['title', 'summary'],
+};
+
+const physicianReportSchema = {
+    type: Type.OBJECT,
+    properties: {
+        title: bilingualTextSchema,
+        introduction: bilingualTextSchema,
+        resultsTable: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    test: bilingualTextSchema,
+                    value: { type: Type.STRING },
+                    referenceRange: { type: Type.STRING },
+                    interpretation: bilingualTextSchema,
+                },
+                required: ['test', 'value', 'referenceRange', 'interpretation'],
+            },
+        },
+        advancedAnalysis: bilingualTextSchema,
+    },
+    required: ['title', 'introduction', 'resultsTable', 'advancedAnalysis'],
+};
+
+const recommendationsSchema = {
+    type: Type.OBJECT,
+    properties: {
+        general: {
+            type: Type.OBJECT,
+            properties: {
+                title: bilingualTextSchema,
+                points: { type: Type.ARRAY, items: bilingualTextSchema },
+            },
+            required: ['title', 'points'],
+        },
+        nutritional: {
+            type: Type.OBJECT,
+            properties: {
+                title: bilingualTextSchema,
+                points: { type: Type.ARRAY, items: bilingualTextSchema },
+            },
+            required: ['title', 'points'],
+        },
+        physicalTherapy: {
+            type: Type.OBJECT,
+            properties: {
+                title: bilingualTextSchema,
+                points: { type: Type.ARRAY, items: bilingualTextSchema },
+            },
+            required: ['title', 'points'],
+        },
+    },
+    required: ['general', 'nutritional', 'physicalTherapy'],
+};
+
+const reportPageSchema = {
+    type: Type.OBJECT,
+    properties: {
+        pageTitle: bilingualTextSchema,
+        patientSummary: patientSummarySchema,
+        physicianReport: physicianReportSchema,
+        recommendations: recommendationsSchema,
+    },
+    required: ['pageTitle'],
+};
+
 const responseSchema = {
     type: Type.OBJECT,
     properties: {
-        patientSummary: {
-            type: Type.OBJECT,
-            properties: {
-                title: bilingualTextSchema,
-                summary: bilingualTextSchema,
-            },
-            required: ['title', 'summary'],
-        },
-        physicianReport: {
-            type: Type.OBJECT,
-            properties: {
-                title: bilingualTextSchema,
-                introduction: bilingualTextSchema,
-                resultsTable: {
-                    type: Type.ARRAY,
-                    items: {
-                        type: Type.OBJECT,
-                        properties: {
-                            test: bilingualTextSchema,
-                            value: { type: Type.STRING },
-                            referenceRange: { type: Type.STRING },
-                            interpretation: bilingualTextSchema,
-                        },
-                        required: ['test', 'value', 'referenceRange', 'interpretation'],
-                    },
-                },
-                advancedAnalysis: bilingualTextSchema,
-            },
-            required: ['title', 'introduction', 'resultsTable', 'advancedAnalysis'],
-        },
-        recommendations: {
-            type: Type.OBJECT,
-            properties: {
-                general: {
-                    type: Type.OBJECT,
-                    properties: {
-                        title: bilingualTextSchema,
-                        points: { type: Type.ARRAY, items: bilingualTextSchema },
-                    },
-                    required: ['title', 'points'],
-                },
-                nutritional: {
-                    type: Type.OBJECT,
-                    properties: {
-                        title: bilingualTextSchema,
-                        points: { type: Type.ARRAY, items: bilingualTextSchema },
-                    },
-                    required: ['title', 'points'],
-                },
-                physicalTherapy: {
-                    type: Type.OBJECT,
-                    properties: {
-                        title: bilingualTextSchema,
-                        points: { type: Type.ARRAY, items: bilingualTextSchema },
-                    },
-                    required: ['title', 'points'],
-                },
-            },
-             required: ['general', 'nutritional', 'physicalTherapy'],
+        pages: {
+            type: Type.ARRAY,
+            items: reportPageSchema,
         },
     },
-    required: ['patientSummary', 'physicianReport', 'recommendations'],
+    required: ['pages'],
 };
+
 
 export const analyzeMedicalReport = async (
     base64Data: string,
@@ -103,6 +122,11 @@ export const analyzeMedicalReport = async (
         
         const jsonText = response.text.trim();
         const result = JSON.parse(jsonText);
+        
+        // Basic validation
+        if (!result.pages || !Array.isArray(result.pages) || result.pages.length === 0) {
+            throw new Error("Invalid response format: 'pages' array is missing or empty.");
+        }
 
         return result as AnalysisResult;
 
