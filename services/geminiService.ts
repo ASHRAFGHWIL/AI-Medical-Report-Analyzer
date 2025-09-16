@@ -1,9 +1,17 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import type { AnalysisResult } from '../types';
 import { getGeminiPrompt } from '../constants';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+
+const bilingualTextSchema = {
+    type: Type.OBJECT,
+    properties: {
+        en: { type: Type.STRING },
+        ar: { type: Type.STRING },
+    },
+    required: ['en', 'ar'],
+};
 
 const responseSchema = {
     type: Type.OBJECT,
@@ -11,30 +19,30 @@ const responseSchema = {
         patientSummary: {
             type: Type.OBJECT,
             properties: {
-                title: { type: Type.STRING },
-                summary: { type: Type.STRING },
+                title: bilingualTextSchema,
+                summary: bilingualTextSchema,
             },
             required: ['title', 'summary'],
         },
         physicianReport: {
             type: Type.OBJECT,
             properties: {
-                title: { type: Type.STRING },
-                introduction: { type: Type.STRING },
+                title: bilingualTextSchema,
+                introduction: bilingualTextSchema,
                 resultsTable: {
                     type: Type.ARRAY,
                     items: {
                         type: Type.OBJECT,
                         properties: {
-                            test: { type: Type.STRING },
+                            test: bilingualTextSchema,
                             value: { type: Type.STRING },
                             referenceRange: { type: Type.STRING },
-                            interpretation: { type: Type.STRING },
+                            interpretation: bilingualTextSchema,
                         },
                         required: ['test', 'value', 'referenceRange', 'interpretation'],
                     },
                 },
-                advancedAnalysis: { type: Type.STRING },
+                advancedAnalysis: bilingualTextSchema,
             },
             required: ['title', 'introduction', 'resultsTable', 'advancedAnalysis'],
         },
@@ -44,24 +52,24 @@ const responseSchema = {
                 general: {
                     type: Type.OBJECT,
                     properties: {
-                        title: { type: Type.STRING },
-                        points: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        title: bilingualTextSchema,
+                        points: { type: Type.ARRAY, items: bilingualTextSchema },
                     },
                     required: ['title', 'points'],
                 },
                 nutritional: {
                     type: Type.OBJECT,
                     properties: {
-                        title: { type: Type.STRING },
-                        points: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        title: bilingualTextSchema,
+                        points: { type: Type.ARRAY, items: bilingualTextSchema },
                     },
                     required: ['title', 'points'],
                 },
                 physicalTherapy: {
                     type: Type.OBJECT,
                     properties: {
-                        title: { type: Type.STRING },
-                        points: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        title: bilingualTextSchema,
+                        points: { type: Type.ARRAY, items: bilingualTextSchema },
                     },
                     required: ['title', 'points'],
                 },
@@ -74,11 +82,10 @@ const responseSchema = {
 
 export const analyzeMedicalReport = async (
     base64Data: string,
-    mimeType: string,
-    language: 'en' | 'ar'
+    mimeType: string
 ): Promise<AnalysisResult> => {
     try {
-        const prompt = getGeminiPrompt(language);
+        const prompt = getGeminiPrompt();
 
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",

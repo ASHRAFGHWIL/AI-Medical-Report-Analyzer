@@ -1,4 +1,3 @@
-
 import type { Language } from './types';
 
 export const UI_TEXTS: Record<Language, Record<string, string>> = {
@@ -58,11 +57,7 @@ export const UI_TEXTS: Record<Language, Record<string, string>> = {
     }
 };
 
-export const getGeminiPrompt = (language: Language): string => {
-    const langInstructions = language === 'ar' 
-        ? "All output text, including titles, summaries, points, and table content, MUST be in Arabic."
-        : "All output text, including titles, summaries, points, and table content, MUST be in English.";
-
+export const getGeminiPrompt = (): string => {
     return `
     You are an expert AI in medical report analysis, acting as a highly knowledgeable physician and medical researcher. Your task is to analyze the provided medical lab report image with academic rigor, adhering to global medical standards like WHO and NIH.
 
@@ -71,7 +66,9 @@ export const getGeminiPrompt = (language: Language): string => {
     2.  Detect and highlight any deviations or critical values.
     3.  Provide clear, structured outputs in JSON format ONLY. Do not add any text before or after the JSON object.
 
-    ${langInstructions}
+    For every text field that requires translation (like titles, summaries, recommendations, test names, interpretations), you MUST provide both an English ('en') and an Arabic ('ar') translation within a nested object.
+    Example: "title": {"en": "Patient Summary", "ar": "ملخص المريض"}.
+    Numeric values and reference ranges should remain as simple strings.
 
     The final JSON object must strictly follow the schema provided.
     - For the 'physicianReport.resultsTable', accurately extract the test name, its value, the reference range, and a concise interpretation (e.g., 'Normal', 'High', 'Low', 'Critical').

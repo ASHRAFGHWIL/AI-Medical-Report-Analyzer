@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { AnalysisResult, Language, Theme, FontSize } from './types';
 import { analyzeMedicalReport } from './services/geminiService';
@@ -59,12 +58,10 @@ const App: React.FC = () => {
         setAnalysisResult(null);
 
         try {
-            // The file preview is a data URL (e.g., "data:image/jpeg;base64,...")
-            // We need to extract just the base64 part.
             const base64Data = filePreview.split(',')[1];
             const mimeType = file.type;
             
-            const result = await analyzeMedicalReport(base64Data, mimeType, language);
+            const result = await analyzeMedicalReport(base64Data, mimeType);
             setAnalysisResult(result);
         } catch (err) {
             console.error(err);
